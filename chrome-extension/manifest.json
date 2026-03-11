@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "PokerNow GTO HUD",
+  "version": "1.0.0",
+  "description": "실시간 9-Max GTO 프리플랍 가이드 및 포스트플랍 승률 기반 액션 추천 HUD",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.pokernow.club/*",
+    "*://pokernow.club/*",
+    "*://*.pokernow.com/*",
+    "*://pokernow.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.pokernow.club/*",
+        "*://pokernow.club/*",
+        "*://*.pokernow.com/*",
+        "*://pokernow.com/*"
+      ],
+      "js": [
+        "hand-evaluator.js",
+        "equity-calculator.js",
+        "gto-ranges.js",
+        "position-detector.js",
+        "content.js"
+      ],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "48": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect fill='%23111827' width='48' height='48' rx='8'/><text x='24' y='32' font-size='24' text-anchor='middle' fill='%2310b981'>♠</text></svg>",
+    "128": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><rect fill='%23111827' width='128' height='128' rx='16'/><text x='64' y='88' font-size='64' text-anchor='middle' fill='%2310b981'>♠</text></svg>"
+  }
+}
