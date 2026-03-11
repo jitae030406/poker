@@ -166,44 +166,70 @@
       allCards.forEach((el, index) => {
         const cardText = el.textContent.trim();
         const innerHTML = el.innerHTML;
+        const classNames = el.className.toLowerCase();
         
         console.log(`[GTO HUD] 카드 ${index}:`, cardText, el.className);
         
-        // 텍스트에서 랭크 찾기 (2-9, T, J, Q, K, A)
-        const rankMatch = cardText.match(/[2-9TJQKA]/);
-        if (!rankMatch) return;
-        
-        const rank = rankMatch[0];
-        let suit = '';
-        
-        // 수트 심볼 직접 찾기
-        if (cardText.includes('♠') || innerHTML.includes('♠') || innerHTML.includes('&spades;')) {
-          suit = 's';
-        } else if (cardText.includes('♥') || innerHTML.includes('♥') || innerHTML.includes('&hearts;')) {
-          suit = 'h';
-        } else if (cardText.includes('♦') || innerHTML.includes('♦') || innerHTML.includes('&diams;')) {
-          suit = 'd';
-        } else if (cardText.includes('♣') || innerHTML.includes('♣') || innerHTML.includes('&clubs;')) {
-          suit = 'c';
+        // PokerNow 특별 형식: "7hh", "Ass" 등
+        // 패턴: [랭크][수트][수트] 예: 7hh, Ass, Kdd
+        const pokerNowMatch = cardText.match(/^([2-9TJQKA])([hdcs])\2$/i);
+        if (pokerNowMatch && cards.length < 2) {
+          const rank = pokerNowMatch[1].toUpperCase();
+          const suit = pokerNowMatch[2].toLowerCase();
+          cards.push(rank + suit);
+          console.log('[GTO HUD] 카드 인식 성공 (PokerNow 형식):', rank + suit);
+          return;
         }
         
+        // CSS 클래스에서 직접 파싱: card-h, card-s7 등
+        if (classNames.includes('card-') && cards.length < 2) {
+          let rank = '';
+          let suit = '';
+          
+          // 수트 확인
+          if (classNames.includes('card-h')) suit = 'h';
+          else if (classNames.includes('card-d')) suit = 'd';
+          else if (classNames.includes('card-c')) suit = 'c';
+          else if (classNames.includes('card-s') && !classNames.includes('card-s2')) suit = 's';
+          
+          // 랭크 확인 (card-s7 = 7, card-sA = A)
+          const rankMatch = classNames.match(/card-s([2-9tjqka])/i);
+          if (rankMatch) {
+            rank = rankMatch[1].toUpperCase();
+          }
+          
+          // 텍스트에서 랭크 추출 (백업)
+          if (!rank) {
+            const textRank = cardText.match(/[2-9TJQKA]/i);
+            if (textRank) rank = textRank[0].toUpperCase();
+          }
+          
+          if (rank && suit) {
+            cards.push(rank + suit);
+            console.log('[GTO HUD] 카드 인식 성공 (클래스):', rank + suit);
+            return;
+          }
+        }
+        
+        // 일반적인 형식
+        const rankMatch = cardText.match(/[2-9TJQKA]/i);
+        if (!rankMatch) return;
+        
+        const rank = rankMatch[0].toUpperCase();
+        let suit = '';
+        
+        // 수트 심볼 찾기
+        if (cardText.includes('♠') || innerHTML.includes('♠')) suit = 's';
+        else if (cardText.includes('♥') || innerHTML.includes('♥')) suit = 'h';
+        else if (cardText.includes('♦') || innerHTML.includes('♦')) suit = 'd';
+        else if (cardText.includes('♣') || innerHTML.includes('♣')) suit = 'c';
+        
         // CSS 클래스에서 수트 감지
-        const classNames = el.className.toLowerCase();
         if (!suit) {
           if (classNames.includes('spade')) suit = 's';
           else if (classNames.includes('heart')) suit = 'h';
           else if (classNames.includes('diamond')) suit = 'd';
           else if (classNames.includes('club')) suit = 'c';
-        }
-        
-        // 색상에서 수트 감지
-        if (!suit) {
-          const computedStyle = window.getComputedStyle(el);
-          const color = computedStyle.color;
-          if (color.includes('255, 0, 0') || color.includes('rgb(255, 0, 0)')) {
-            // 빨간색 = 하트 또는 다이아
-            suit = cardText.includes('♥') ? 'h' : 'd';
-          }
         }
         
         if (rank && suit && cards.length < 2) {
@@ -254,22 +280,52 @@
       cardElements.forEach(el => {
         const cardText = el.textContent.trim();
         const innerHTML = el.innerHTML;
+        const classNames = el.className.toLowerCase();
         
-        const rankMatch = cardText.match(/[2-9TJQKA]/);
+        // PokerNow 특별 형식: "7hh", "Ass" 등
+        const pokerNowMatch = cardText.match(/^([2-9TJQKA])([hdcs])\2$/i);
+        if (pokerNowMatch) {
+          const rank = pokerNowMatch[1].toUpperCase();
+          const suit = pokerNowMatch[2].toLowerCase();
+          cards.push(rank + suit);
+          return;
+        }
+        
+        // CSS 클래스에서 파싱
+        if (classNames.includes('card-')) {
+          let rank = '';
+          let suit = '';
+          
+          if (classNames.includes('card-h')) suit = 'h';
+          else if (classNames.includes('card-d')) suit = 'd';
+          else if (classNames.includes('card-c')) suit = 'c';
+          else if (classNames.includes('card-s')) suit = 's';
+          
+          const rankMatch = classNames.match(/card-s([2-9tjqka])/i);
+          if (rankMatch) {
+            rank = rankMatch[1].toUpperCase();
+          } else {
+            const textRank = cardText.match(/[2-9TJQKA]/i);
+            if (textRank) rank = textRank[0].toUpperCase();
+          }
+          
+          if (rank && suit) {
+            cards.push(rank + suit);
+            return;
+          }
+        }
+        
+        // 일반 형식
+        const rankMatch = cardText.match(/[2-9TJQKA]/i);
         if (!rankMatch) return;
         
-        const rank = rankMatch[0];
+        const rank = rankMatch[0].toUpperCase();
         let suit = '';
         
-        if (cardText.includes('♠') || innerHTML.includes('♠') || innerHTML.includes('&spades;')) {
-          suit = 's';
-        } else if (cardText.includes('♥') || innerHTML.includes('♥') || innerHTML.includes('&hearts;')) {
-          suit = 'h';
-        } else if (cardText.includes('♦') || innerHTML.includes('♦') || innerHTML.includes('&diams;')) {
-          suit = 'd';
-        } else if (cardText.includes('♣') || innerHTML.includes('♣') || innerHTML.includes('&clubs;')) {
-          suit = 'c';
-        }
+        if (cardText.includes('♠') || innerHTML.includes('♠')) suit = 's';
+        else if (cardText.includes('♥') || innerHTML.includes('♥')) suit = 'h';
+        else if (cardText.includes('♦') || innerHTML.includes('♦')) suit = 'd';
+        else if (cardText.includes('♣') || innerHTML.includes('♣')) suit = 'c';
         
         if (rank && suit) {
           cards.push(rank + suit);
@@ -349,14 +405,23 @@
         if (className.includes('you') || 
             className.includes('me') || 
             className.includes('your') ||
-            textContent.includes('your turn')) {
+            textContent.includes('your turn') ||
+            player.querySelector('[class*="your"]')) {
           myIndex = index;
           console.log('[GTO HUD] 내 포지션 인덱스:', index);
         }
         
-        // 딜러 버튼 확인
-        if (player.contains(dealerButton) || 
-            player.querySelector('.dealer-button, .dealer-button-node, [class*="dealer"]')) {
+        // 딜러 버튼 확인 - 더 넓게 검색
+        const hasDealerButton = 
+          player.contains(dealerButton) || 
+          player.querySelector('.dealer-button, .dealer-button-node, [class*="dealer"]') ||
+          player.querySelector('[class*="button-icon"]') ||
+          Array.from(player.querySelectorAll('*')).some(el => 
+            el.className.toLowerCase().includes('dealer') || 
+            el.textContent.trim() === 'D'
+          );
+          
+        if (hasDealerButton) {
           dealerIndex = index;
           console.log('[GTO HUD] 딜러 인덱스:', index);
         }
