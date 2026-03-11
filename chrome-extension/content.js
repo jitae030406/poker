@@ -129,42 +129,93 @@
   // 카드 스크래핑
   function scrapeMyCards() {
     try {
-      // PokerNow의 플레이어 카드 선택자
-      const playerArea = document.querySelector('.you-player, .table-player.is-me, [class*="player-area-you"]');
-      if (!playerArea) return [];
+      console.log('[GTO HUD] 카드 스크래핑 시도...');
+      
+      // 다양한 선택자 시도
+      const selectors = [
+        '.your-cards-container', 
+        '.player-cards',
+        '.your-hand',
+        '[class*="your"]',
+        '[class*="hand"]',
+        '[class*="player-card"]'
+      ];
+      
+      let playerArea = null;
+      for (const selector of selectors) {
+        playerArea = document.querySelector(selector);
+        if (playerArea) {
+          console.log('[GTO HUD] 플레이어 영역 찾음:', selector);
+          break;
+        }
+      }
+      
+      // 전체 문서에서 카드 찾기 (백업)
+      if (!playerArea) {
+        console.log('[GTO HUD] 전체 문서에서 카드 검색');
+        playerArea = document.body;
+      }
 
-      const cardElements = playerArea.querySelectorAll('.card-item, .playing-card, [class*="card"]');
+      // 카드 요소 찾기
+      const cardSelectors = '.card, [class*="card"], [class*="playing"]';
+      const allCards = playerArea.querySelectorAll(cardSelectors);
+      console.log('[GTO HUD] 찾은 카드 요소 수:', allCards.length);
+      
       const cards = [];
 
-      cardElements.forEach(el => {
+      allCards.forEach((el, index) => {
         const cardText = el.textContent.trim();
-        const classNames = el.className;
+        const innerHTML = el.innerHTML;
         
-        // 텍스트에서 카드 파싱
-        if (cardText.length >= 2) {
-          const rank = cardText[0].toUpperCase();
-          let suit = '';
-          
-          // 클래스나 텍스트에서 수트 감지
-          if (classNames.includes('heart') || cardText.includes('♥') || el.style.color.includes('red')) {
-            suit = 'h';
-          } else if (classNames.includes('diamond') || cardText.includes('♦')) {
-            suit = 'd';
-          } else if (classNames.includes('club') || cardText.includes('♣')) {
-            suit = 'c';
-          } else if (classNames.includes('spade') || cardText.includes('♠')) {
-            suit = 's';
+        console.log(`[GTO HUD] 카드 ${index}:`, cardText, el.className);
+        
+        // 텍스트에서 랭크 찾기 (2-9, T, J, Q, K, A)
+        const rankMatch = cardText.match(/[2-9TJQKA]/);
+        if (!rankMatch) return;
+        
+        const rank = rankMatch[0];
+        let suit = '';
+        
+        // 수트 심볼 직접 찾기
+        if (cardText.includes('♠') || innerHTML.includes('♠') || innerHTML.includes('&spades;')) {
+          suit = 's';
+        } else if (cardText.includes('♥') || innerHTML.includes('♥') || innerHTML.includes('&hearts;')) {
+          suit = 'h';
+        } else if (cardText.includes('♦') || innerHTML.includes('♦') || innerHTML.includes('&diams;')) {
+          suit = 'd';
+        } else if (cardText.includes('♣') || innerHTML.includes('♣') || innerHTML.includes('&clubs;')) {
+          suit = 'c';
+        }
+        
+        // CSS 클래스에서 수트 감지
+        const classNames = el.className.toLowerCase();
+        if (!suit) {
+          if (classNames.includes('spade')) suit = 's';
+          else if (classNames.includes('heart')) suit = 'h';
+          else if (classNames.includes('diamond')) suit = 'd';
+          else if (classNames.includes('club')) suit = 'c';
+        }
+        
+        // 색상에서 수트 감지
+        if (!suit) {
+          const computedStyle = window.getComputedStyle(el);
+          const color = computedStyle.color;
+          if (color.includes('255, 0, 0') || color.includes('rgb(255, 0, 0)')) {
+            // 빨간색 = 하트 또는 다이아
+            suit = cardText.includes('♥') ? 'h' : 'd';
           }
-          
-          if (rank && suit) {
-            cards.push(rank + suit);
-          }
+        }
+        
+        if (rank && suit && cards.length < 2) {
+          cards.push(rank + suit);
+          console.log('[GTO HUD] 카드 인식 성공:', rank + suit);
         }
       });
 
-      return cards.slice(0, 2);
+      console.log('[GTO HUD] 최종 카드:', cards);
+      return cards;
     } catch (error) {
-      console.error('카드 스크래핑 오류:', error);
+      console.error('[GTO HUD] 카드 스크래핑 오류:', error);
       return [];
     }
   }
@@ -172,39 +223,63 @@
   // 보드 카드 스크래핑
   function scrapeBoardCards() {
     try {
-      const boardArea = document.querySelector('.table-cards, .community-cards, [class*="board"]');
-      if (!boardArea) return [];
+      console.log('[GTO HUD] 보드 카드 스크래핑 시도...');
+      
+      const boardSelectors = [
+        '.table-cards',
+        '.community-cards',
+        '.board-cards',
+        '[class*="board"]',
+        '[class*="community"]',
+        '[class*="table-card"]'
+      ];
+      
+      let boardArea = null;
+      for (const selector of boardSelectors) {
+        boardArea = document.querySelector(selector);
+        if (boardArea) {
+          console.log('[GTO HUD] 보드 영역 찾음:', selector);
+          break;
+        }
+      }
 
-      const cardElements = boardArea.querySelectorAll('.card-item, .playing-card, [class*="card"]');
+      if (!boardArea) {
+        console.log('[GTO HUD] 보드 카드 없음 (프리플랍)');
+        return [];
+      }
+
+      const cardElements = boardArea.querySelectorAll('.card, [class*="card"]');
       const cards = [];
 
       cardElements.forEach(el => {
         const cardText = el.textContent.trim();
-        const classNames = el.className;
+        const innerHTML = el.innerHTML;
         
-        if (cardText.length >= 2) {
-          const rank = cardText[0].toUpperCase();
-          let suit = '';
-          
-          if (classNames.includes('heart') || cardText.includes('♥')) {
-            suit = 'h';
-          } else if (classNames.includes('diamond') || cardText.includes('♦')) {
-            suit = 'd';
-          } else if (classNames.includes('club') || cardText.includes('♣')) {
-            suit = 'c';
-          } else if (classNames.includes('spade') || cardText.includes('♠')) {
-            suit = 's';
-          }
-          
-          if (rank && suit) {
-            cards.push(rank + suit);
-          }
+        const rankMatch = cardText.match(/[2-9TJQKA]/);
+        if (!rankMatch) return;
+        
+        const rank = rankMatch[0];
+        let suit = '';
+        
+        if (cardText.includes('♠') || innerHTML.includes('♠') || innerHTML.includes('&spades;')) {
+          suit = 's';
+        } else if (cardText.includes('♥') || innerHTML.includes('♥') || innerHTML.includes('&hearts;')) {
+          suit = 'h';
+        } else if (cardText.includes('♦') || innerHTML.includes('♦') || innerHTML.includes('&diams;')) {
+          suit = 'd';
+        } else if (cardText.includes('♣') || innerHTML.includes('♣') || innerHTML.includes('&clubs;')) {
+          suit = 'c';
+        }
+        
+        if (rank && suit) {
+          cards.push(rank + suit);
         }
       });
 
+      console.log('[GTO HUD] 보드 카드:', cards);
       return cards.slice(0, 5);
     } catch (error) {
-      console.error('보드 카드 스크래핑 오류:', error);
+      console.error('[GTO HUD] 보드 카드 스크래핑 오류:', error);
       return [];
     }
   }
@@ -212,35 +287,92 @@
   // 포지션 감지
   function detectMyPosition() {
     try {
+      console.log('[GTO HUD] 포지션 감지 시도...');
+      
       // 딜러 버튼 찾기
-      const dealerButton = document.querySelector('.dealer-button-node, .dealer-button, [class*="dealer"]');
-      if (!dealerButton) return null;
+      const dealerSelectors = [
+        '.dealer-button',
+        '.dealer-button-node',
+        '[class*="dealer"]',
+        '[class*="button-icon"]'
+      ];
+      
+      let dealerButton = null;
+      for (const selector of dealerSelectors) {
+        dealerButton = document.querySelector(selector);
+        if (dealerButton) {
+          console.log('[GTO HUD] 딜러 버튼 찾음:', selector);
+          break;
+        }
+      }
+      
+      if (!dealerButton) {
+        console.log('[GTO HUD] 딜러 버튼 없음');
+        return null;
+      }
 
       // 전체 플레이어 찾기
-      const allPlayers = document.querySelectorAll('.table-player, .player-area, [class*="player-seat"]');
-      const totalPlayers = allPlayers.length;
+      const playerSelectors = [
+        '.player-seat',
+        '.table-player',
+        '.player-area',
+        '[class*="player-seat"]',
+        '[class*="seat"]'
+      ];
+      
+      let allPlayers = null;
+      for (const selector of playerSelectors) {
+        const players = document.querySelectorAll(selector);
+        if (players.length >= 2) {
+          allPlayers = players;
+          console.log('[GTO HUD] 플레이어 찾음:', selector, players.length + '명');
+          break;
+        }
+      }
 
-      if (totalPlayers < 2) return null;
+      if (!allPlayers || allPlayers.length < 2) {
+        console.log('[GTO HUD] 플레이어 부족');
+        return null;
+      }
+
+      const totalPlayers = allPlayers.length;
 
       // 내 위치와 딜러 버튼 위치 찾기
       let myIndex = -1;
       let dealerIndex = -1;
 
       allPlayers.forEach((player, index) => {
-        if (player.classList.contains('you-player') || player.classList.contains('is-me')) {
+        // 내 플레이어 확인
+        const className = player.className.toLowerCase();
+        const textContent = player.textContent.toLowerCase();
+        
+        if (className.includes('you') || 
+            className.includes('me') || 
+            className.includes('your') ||
+            textContent.includes('your turn')) {
           myIndex = index;
+          console.log('[GTO HUD] 내 포지션 인덱스:', index);
         }
-        if (player.contains(dealerButton) || player.querySelector('.dealer-button-node, .dealer-button')) {
+        
+        // 딜러 버튼 확인
+        if (player.contains(dealerButton) || 
+            player.querySelector('.dealer-button, .dealer-button-node, [class*="dealer"]')) {
           dealerIndex = index;
+          console.log('[GTO HUD] 딜러 인덱스:', index);
         }
       });
 
-      if (myIndex === -1 || dealerIndex === -1) return null;
+      if (myIndex === -1 || dealerIndex === -1) {
+        console.log('[GTO HUD] 인덱스 찾기 실패 - my:', myIndex, 'dealer:', dealerIndex);
+        return null;
+      }
 
       // 포지션 계산
-      return PositionDetector.detectPosition(dealerIndex, myIndex, totalPlayers);
+      const position = PositionDetector.detectPosition(dealerIndex, myIndex, totalPlayers);
+      console.log('[GTO HUD] 포지션:', position);
+      return position;
     } catch (error) {
-      console.error('포지션 감지 오류:', error);
+      console.error('[GTO HUD] 포지션 감지 오류:', error);
       return null;
     }
   }
@@ -248,31 +380,49 @@
   // 팟 사이즈 계산
   function calculatePotSize() {
     try {
+      console.log('[GTO HUD] 팟 계산 시도...');
       let totalPot = 0;
 
-      // 메인 팟
-      const potElements = document.querySelectorAll('.pot-amount, .pot-value, [class*="pot"]');
-      potElements.forEach(el => {
-        const text = el.textContent.replace(/[^0-9.]/g, '');
-        const value = parseFloat(text);
-        if (!isNaN(value)) {
-          totalPot += value;
+      // 메인 팟 찾기
+      const potSelectors = [
+        '.pot-amount',
+        '.pot-value',
+        '.pot-size',
+        '[class*="pot"]'
+      ];
+      
+      potSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+          const text = el.textContent.replace(/[^0-9.]/g, '');
+          const value = parseFloat(text);
+          if (!isNaN(value) && value > 0) {
+            totalPot += value;
+            console.log('[GTO HUD] 팟 금액 추가:', value);
+          }
+        });
+      });
+
+      // 전체 문서에서 "total" 포함 텍스트 검색
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        const text = el.textContent.trim();
+        if (text.toLowerCase().includes('total') && text.length < 30) {
+          const match = text.match(/\d+/);
+          if (match) {
+            const value = parseInt(match[0]);
+            if (!isNaN(value) && value > totalPot) {
+              totalPot = value;
+              console.log('[GTO HUD] Total 팟 발견:', value);
+            }
+          }
         }
       });
 
-      // 플레이어 베팅액
-      const betElements = document.querySelectorAll('.player-bet, .bet-amount, [class*="bet"]');
-      betElements.forEach(el => {
-        const text = el.textContent.replace(/[^0-9.]/g, '');
-        const value = parseFloat(text);
-        if (!isNaN(value)) {
-          totalPot += value;
-        }
-      });
-
+      console.log('[GTO HUD] 최종 팟:', totalPot);
       return totalPot;
     } catch (error) {
-      console.error('팟 계산 오류:', error);
+      console.error('[GTO HUD] 팟 계산 오류:', error);
       return 0;
     }
   }
@@ -280,14 +430,34 @@
   // 콜 금액 계산
   function calculateCallAmount() {
     try {
-      const callButton = document.querySelector('button[class*="call"], .action-call, [data-action="call"]');
-      if (!callButton) return 0;
+      console.log('[GTO HUD] 콜 금액 계산 시도...');
+      
+      // CALL 버튼 찾기
+      const callSelectors = [
+        'button:contains("CALL")',
+        '.action-call',
+        '.button-call',
+        '[class*="call"]',
+        'button'
+      ];
+      
+      let callAmount = 0;
+      
+      const allButtons = document.querySelectorAll('button, .action-button, [class*="action"]');
+      allButtons.forEach(btn => {
+        const text = btn.textContent.trim().toUpperCase();
+        if (text.includes('CALL')) {
+          const match = text.match(/\d+/);
+          if (match) {
+            callAmount = parseInt(match[0]);
+            console.log('[GTO HUD] 콜 금액:', callAmount);
+          }
+        }
+      });
 
-      const text = callButton.textContent.replace(/[^0-9.]/g, '');
-      const value = parseFloat(text);
-      return isNaN(value) ? 0 : value;
+      return callAmount;
     } catch (error) {
-      console.error('콜 금액 계산 오류:', error);
+      console.error('[GTO HUD] 콜 금액 계산 오류:', error);
       return 0;
     }
   }
@@ -525,7 +695,11 @@
 
   // 초기화
   function init() {
-    console.log('PokerNow GTO HUD 초기화 중...');
+    console.log('='.repeat(50));
+    console.log('[GTO HUD] PokerNow GTO HUD 초기화 중...');
+    console.log('[GTO HUD] URL:', window.location.href);
+    console.log('[GTO HUD] Document ready state:', document.readyState);
+    console.log('='.repeat(50));
     
     // HUD 생성
     createHUD();
@@ -534,9 +708,12 @@
     updateInterval = setInterval(updateHUD, 1000);
     
     // 즉시 첫 업데이트
-    updateHUD();
+    setTimeout(() => {
+      console.log('[GTO HUD] 첫 업데이트 시작...');
+      updateHUD();
+    }, 2000); // 2초 대기 후 첫 업데이트
     
-    console.log('PokerNow GTO HUD 활성화됨');
+    console.log('[GTO HUD] PokerNow GTO HUD 활성화됨');
   }
 
   // 페이지 로드 후 초기화
@@ -544,7 +721,7 @@
     document.addEventListener('DOMContentLoaded', init);
   } else {
     // 이미 로드된 경우 약간의 지연 후 초기화
-    setTimeout(init, 1000);
+    setTimeout(init, 2000);
   }
 
   // 페이지 언로드 시 정리
@@ -553,4 +730,9 @@
       clearInterval(updateInterval);
     }
   });
+  
+  // 콘솔에 HUD 정보 출력
+  console.log('[GTO HUD] Chrome Extension loaded successfully');
+  console.log('[GTO HUD] Version: 1.0.0');
+  console.log('[GTO HUD] 문제가 있으면 콘솔 로그를 확인하세요');
 })();
