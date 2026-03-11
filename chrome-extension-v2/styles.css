@@ -1,0 +1,125 @@
+#gto-wizard-hud {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background: rgba(17, 24, 39, 0.97);
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  color: #f3f4f6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  z-index: 999999;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.hud-header {
+  background: linear-gradient(135deg, #10b981, #059669);
+  padding: 12px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 1px;
+  border-radius: 10px 10px 0 0;
+}
+
+.hud-body {
+  padding: 16px;
+}
+
+.hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hud-row:last-of-type {
+  border-bottom: none;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-size: 13px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+
+.value.active {
+  color: #10b981;
+}
+
+.hud-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.action-box {
+  background: rgba(31, 41, 55, 0.8);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.action-box.highlight {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  transform: scale(1.05);
+}
+
+.action-box.fold.highlight {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.action-box.call.highlight {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+}
+
+.action-label {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.action-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f3f4f6;
+}
+
+.action-box.highlight .action-value {
+  color: #10b981;
+}
+
+.action-box.fold.highlight .action-value {
+  color: #ef4444;
+}
+
+.action-box.call.highlight .action-value {
+  color: #fbbf24;
+}
+
+.status {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 600;
+  padding: 6px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+}
